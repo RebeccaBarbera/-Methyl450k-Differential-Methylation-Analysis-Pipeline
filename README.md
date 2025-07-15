@@ -8,18 +8,18 @@ IlluminaHumanMethylation450kmanifest – Provides the manifest file with probe d
 IlluminaHumanMethylation450kanno.ilmn12.hg19 – Provides annotation for the 450k array probes.
 
 #### Visualization:
-gplots – For heatmap.2 to generate heatmaps
-qqman – For creating Manhattan plots (commonly used in genomics)
-Base R graphics – For plot(), legend(), boxplot(), density(), etc.
+- gplots – For heatmap.2 to generate heatmaps
+- qqman – For creating Manhattan plots (commonly used in genomics)
+- Base R graphics – For plot(), legend(), boxplot(), density(), etc.
 
 #### Statistical Analysis:
-stats – Base R package used for PCA (prcomp), p-value correction (p.adjust)
-minfi– Provides dmpFinder() for differential methylation analysis
+- stats – Base R package used for PCA (prcomp), p-value correction (p.adjust)
+- minfi– Provides dmpFinder() for differential methylation analysis
 
 #### Data Handling / Utilities:
-BiocManager – For installing Bioconductor packages
-base, utils – Core R packages used for file reading, data manipulation
-Optional / Mentioned:
+- BiocManager – For installing Bioconductor packages
+- base, utils – Core R packages used for file reading, data manipulation
+- Optional / Mentioned:
 BiocGenerics, S4Vectors, IRanges, GenomicRanges – Implicitly used by minfi and 450k packages (you don't call them directly)
 
 
