@@ -12,7 +12,7 @@
 | **`ggplot2`**                                                                               | For visualization and plotting.                                      |
 | **`reshape2` or `tidyverse`**                                                               | For data wrangling and formatting.                                   |
 | **`knitr` / `rmarkdown`**                                                                   | For generating the HTML report output.                               |
-| **`qqman`**                                                                                 | Fpr creating MAnhatta  plots (commonlu used in genomics              |
+| **`qqman`**                                                                                 | For creating Manhatta  plots (commonlu used in genomics              |
 
 #### Data Handling / Utilities:
 | Package                                         | Purpose                                         |
