@@ -1,0 +1,582 @@
+---
+title: "Final_report_team3"
+author: "anemirekrini"
+date: "2025-06-25"
+output: html_document
+---
+
+# DNA/RNA FINAL REPORT MARKDOWN
+
+### Introduction
+
+In this project, we performed a complete DNA methylation analysis workflow using data from the Illumina HumanMethylation450K array file. Our aim was to identify differentially methylated positions (DMPs) between control (CTRL) and diseased (DIS) samples.
+
+A standardized pipeline was applied using `minfi` as main R package, which allows for flexible and comprehensive preprocessing and analysis of methylation microarray data.
+
+This report documents the full analytical workflow and provides interpretations for each step. Our group followed the specific parameters assigned to Team 3:
+
+-   address probe `31763489`
+-   detection p-value threshold of 0.05;
+-   `dmpFinder` for statistical testing.
+
+### Before starting the analysis beware to set your working directory
+
+```{r}
+setwd("/wdpath") #Write your working directory path in the quotes
+getwd() #show your working directory
+```
+
+Download Illumina450Manifest_clean R file from this link <https://virtuale.unibo.it/mod/folder/view.php?id=1853816>
+
+```{r}
+load('Illumina450Manifest_clean.RData') 
+```
+
+Check if the BiocManager package is installed; if not, install it.
+
+BiocManager is the standard tool for installing Bioconductor packages in R.
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+```
+
+Use BiocManager to install the annotation package for the Illumina 450k array.
+
+This package contains genome annotation data for probes on the HumanMethylation450k chip.
+
+```{r}
+BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")
+```
+
+Check again if BiocManager is installed (redundant here but safe)
+
+then install the manifest package, which contains metadata for probe design.
+
+```{r}
+BiocManager::install("IlluminaHumanMethylation450kmanifest")
+```
+
+```{r}
+library(IlluminaHumanMethylation450kmanifest)
+```
+
+### The analysis included the following key steps:
+
+| **Step 1**
+| Read the sample sheet and load raw `.idat` files using `read.metharray.exp()`, creating the `RGset` object which stores the red and green signal intensities for each probe.
+
+```{r}
+library(minfi)
+
+SampleSheet <- read.table("SampleSheet_Report_II.csv",sep=",",header=T, stringsAsFactors = TRUE)
+SampleSheet
+SS2 <- read.csv("SampleSheet_Report_II.csv",sep=",",header=T, stringsAsFactors = TRUE)
+
+baseDir <- ("/wdpath/Input_Data")
+
+targets <- read.metharray.sheet(baseDir)
+targets
+
+RGset <- read.metharray.exp(targets = targets)
+save(RGset,file="RGset.RData")
+```
+
+| **Step 2**
+| Retrieve the raw red and green fluorescence intensity matrices using `getRed()` and `getGreen()`.
+
+```{r}
+Red <- data.frame(getRed(RGset))
+dim(Red)
+head(Red)
+
+Green <- data.frame(getGreen(RGset))
+dim(Green)
+head(Green)
+```
+
+| **Step 3**
+| Using the address `31763489`, extract its red and green fluorescence intensities and check its probe type and color channel using the manifest file.
+
+```{r}
+probes_red_color <- Red['31763489',]
+probes_red_color
+probes_green_color <- Green['31763489',]
+probes_green_color
+
+Illumina450Manifest_clean[Illumina450Manifest_clean$AddressA_ID=="31763489","Infinium_Design_Type"]
+Illumina450Manifest_clean[Illumina450Manifest_clean$AddressA_ID=="31763489","Color_Channel"]
+```
+
+Red and Green fluorescence for the assigned address (31763489):
+
+| Sample                         | Red  | Green | Type | Color |
+|--------------------------------|------|-------|------|-------|
+| GSM5319592_200121140049_R01C02 | 1115 | 210   | II   | N/A   |
+| GSM5319603_3999356129_R02C02   | 356  | 89    | II   | N/A   |
+| GSM5319604_3999547012_R02C01   | 254  | 179   | II   | N/A   |
+| GSM5319607_3999547012_R03C02   | 1836 | 249   | II   | N/A   |
+| GSM5319609_3999547016_R02C01   | 157  | 122   | II   | N/A   |
+| GSM5319613_3999547017_R02C01   | 243  | 125   | II   | N/A   |
+| GSM5319615_3999547017_R04C01   | 317  | 175   | II   | N/A   |
+| GSM5319616_3999547017_R06C01   | 194  | 168   | II   | N/A   |
+
+| **Step 4**
+| Create the `MSet.raw` object using `preprocessRaw()` and perform a first quality check using `getQC()` and `plotQC()`
+
+```{r}
+MSet.raw<-preprocessRaw(RGset) 
+MSet.raw 
+
+quality_control <- getQC(MSet.raw)
+quality_control 
+plotQC(quality_control)
+```
+
+| **Step 5**
+| Identify control probes, especially negative controls, and visualize their signal distribution. Compute detection p-values and count how many probes exceed the 0.05 threshold.
+
+```{r}
+getProbeInfo(RGset, type = "Control")
+df_TypeControl <- data.frame(getProbeInfo(RGset, type = "Control"))
+str(df_TypeControl)
+table(df_TypeControl$Type)
+
+# Subset only the negative controls
+# neg_controls <- subset(df_TypeControl, Type == "NEGATIVE")
+controlStripPlot(RGset, controls = "NEGATIVE")
+
+#pvalue detection
+detP <- detectionP(RGset)
+
+filaed <- detP>0.05
+head(filaed)
+summary(filaed)
+
+```
+
+Probes with a detection p-value higher than the assigned threshold (0.05):
+
+| Sample                         | n° Failed position |
+|--------------------------------|--------------------|
+| GSM5319592_200121140049_R01C02 | 202                |
+| GSM5319603_3999356129_R02C02   | 306                |
+| GSM5319604_3999547012_R02C01   | 1156               |
+| GSM5319607_3999547012_R03C02   | 366                |
+| GSM5319609_3999547016_R02C01   | 2735               |
+| GSM5319613_3999547017_R02C01   | 460                |
+| GSM5319615_3999547017_R04C01   | 384                |
+| GSM5319616_3999547017_R06C01   | 674                |
+
+| **Step 6**
+| Calculate raw β-values and M-values (which measure methylation levels), then visualize their distributions by sample group (CTRL vs DIS).
+
+```{r}
+beta <- getBeta(MSet.raw)
+class(beta)
+dim(beta)
+head(beta)
+summary(beta)
+
+M <- getM(MSet.raw)
+dim(M)
+head(M)
+summary(M)
+pData(MSet.raw)$Group   
+group <- pData(MSet.raw)$Group  
+table(group)
+
+# Grouping
+group <- pData(MSet.raw)$Group
+
+# Split beta values
+beta_CTRL <- beta[, group == "CTRL"]
+beta_DIS  <- beta[, group == "DIS"]
+
+# Mean beta values per CpG site
+mean_beta_CTRL <- rowMeans(beta_CTRL, na.rm = TRUE)
+mean_beta_DIS  <- rowMeans(beta_DIS, na.rm = TRUE)
+
+# Density plots (no is.na used)
+d_CTRL <- density(mean_beta_CTRL, na.rm = TRUE)
+d_DIS  <- density(mean_beta_DIS, na.rm = TRUE)
+
+# Plot
+plot(d_CTRL, col = "blue", main = "Density of Mean Beta Values", xlab = "Mean Beta", lwd = 2)
+lines(d_DIS, col = "red", lwd = 2)
+legend("topright", legend = c("CTRL", "DIS"), col = c("blue", "red"), lwd = 2)
+
+#M value
+M_CTRL <- M[, group == "CTRL"]
+M_DIS  <- M[, group == "DIS"]
+
+# Mean beta values per CpG site
+mean_M_CTRL <- rowMeans(M_CTRL, na.rm = TRUE)
+mean_M_DIS  <- rowMeans(M_DIS, na.rm = TRUE)
+
+# Density plots (no is.na used)
+d_CTRL1 <- density(mean_M_CTRL, na.rm = TRUE)
+d_DIS1  <- density(mean_M_DIS, na.rm = TRUE)
+
+# Plot
+plot(d_CTRL1, col = "hotpink", main = "Density of Mean M Values", xlab = "Mean M", lwd = 2)
+lines(d_DIS1, col = "darkgreen", lwd = 2)
+legend("topright", legend = c("CTRL", "DIS"), col = c("hotpink", "darkgreen"), lwd = 2)
+```
+
+Both groups exhibit a bimodal distribution; while in the hypomethylated the difference between CTRL and DIS is more subtle, it becomes more pronounced in the hypermethylated part, where CTRL group shows a higher density peaks around 0.8-0.85 in Mean Beta, and higher in Mean M. Conversely, the Disease (DIS) group displays a more attenuated and diffused distribution in these extreme methylation ranges, indicating a less distinct polarization or less frequent occurrence of these extreme methylation states compared to CTRL. Beta values have a biological meaning in contrast to M values, which are preferred from the statistical point of view.
+
+| **Step 7**
+| Apply quantile normalization with `preprocessQuantile()` and compare the distribution of raw and normalized beta values through density plots and boxplots
+
+```{r}
+#?preprocessQuantile
+preprocessQuantile_results <- preprocessQuantile(RGset)
+preprocessQuantile_results
+
+beta_preprocessQuantile <- getBeta(preprocessQuantile_results)
+M_preprocessQuantile <- getM(preprocessQuantile_results)
+
+beta_preprocessQuantile_mean <- apply(beta_preprocessQuantile,1, mean,na.rm=T)
+beta_preprocessQuantile_stdev <- apply(beta_preprocessQuantile,1, sd,na.rm=T)
+
+M_preprocessQuantile_mean <- apply(M_preprocessQuantile,1, mean,na.rm=T)
+M_preprocessQuantile_stdev <- apply(M_preprocessQuantile,1, sd,na.rm=T)
+
+
+# Produce a plot with 6 panels 
+par(mfrow = c(2, 3))
+
+#raw mean density plot
+beta_noNA <- beta[complete.cases(beta), ]
+mean_of_beta <- apply(beta_noNA, 1, mean)
+d_mean_of_beta <- density(mean_of_beta)
+plot(d_mean_of_beta,main="Raw Mean Density of Beta",col="hotpink")
+
+#raw stdev density plot
+beta_noNA <- beta[complete.cases(beta), ]
+stdev_of_beta <- apply(beta_noNA, 1, sd)
+d_stdev_of_beta <- density(stdev_of_beta)
+plot(d_stdev_of_beta,main="Raw StDev Density of Beta",col="lightpink")
+
+#mean normalised density plot
+d_mean_of_normalised <-density(beta_preprocessQuantile_mean)
+
+plot(d_mean_of_normalised,main="Normalised Mean Density of Beta",col="purple")
+
+#stdev normalised density plot
+d_sd_of_normalised <-density(beta_preprocessQuantile_stdev)
+
+plot(d_sd_of_normalised,main="Normalised SD Density of Beta",col="orange")
+
+# boxplot
+boxplot(beta_noNA, main="Raw Beta", col="lightblue")
+boxplot(beta_preprocessQuantile, main="Normalised Beta", col="lightgreen")
+
+# Reset to 1 plot per page
+par(mfrow= c(1,1))
+
+#check whether the distribution of methylation values is different between the two groups, before and after normalization
+
+group <- pData(MSet.raw)$Group
+group
+
+
+# Subset samples by group
+group <- pData(MSet.raw)$Group
+beta_subset <- beta_preprocessQuantile
+CTRL_beta <- rowMeans(beta_subset[, group == "CTRL"])
+DIS_beta  <- rowMeans(beta_subset[, group == "DIS"])
+
+# Combine for boxplot
+box_data <- data.frame(
+  CTRL = CTRL_beta,
+  DIS = DIS_beta
+)
+
+# Plot
+boxplot(box_data,
+        col = c("lightblue", "lavender"),
+        main = "Raw Beta Values by Group (Averaged)",
+        ylab = "Beta Values")
+legend("topright", legend = c("CTRL", "DIS"), fill = c("lightblue", "lavender"))
+```
+
+The applied normalization method **(Quantile Normalization)** seems appropriate for this dataset. After normalization, the density plots of beta value means and standard deviations show more consistent distributions across samples, suggesting that technical variability has been reduced. Additionally, the boxplots indicate that methylation values are more comparable across arrays, while group-specific distributions (CTRL vs DIS) are still distinguishable, meaning the biological variation was preserved.
+
+| **Step 8**
+| Perform Principal Component Analysis on normalized beta values to visualize sample clustering and variance, and color samples by group.
+
+```{r}
+#Perform a PCA on the matrix of normalized beta values generated in step 7
+pca_results <- prcomp(t(beta_preprocessQuantile),scale=T)
+print(summary(pca_results))
+plot(pca_results)
+
+#The principal components of interest are stored in element named "x" of the list.
+pca_results$x
+plot(pca_results$x[,1], pca_results$x[,2], 
+     col = ifelse(group == "CTRL", "skyblue", "salmon"),
+     pch = 19,
+     xlab = "PC 1",
+     ylab = "PC 2",
+     main = "PCA: Normalized Beta Values")
+
+#visually inspect specific samples on the PCA plot
+text(pca_results$x[,1], pca_results$x[,2],labels=rownames(pca_results$x),pos=1)
+```
+
+There is an outlier (`GSM5319609`) in the bottom-right corner, PC1 (PC1 ≈ +850) possibly due to batch effect or quality issues. In the plot **CTRL and DIS points are intermixed**, except for the outlier - there's no clear separation along PC1 or PC2. In summary, **there's no strong group-specific global methylation pattern** detectable in PC1 or PC2. Regarding the sex of the samples, male and female samples are not clearly separated, points appear mixed. When considering the batch, the outlier is the only sample from `3999547016` and there's some tight clustering of samples from `3999547017`, making it likely that they are dividing according to this factor.
+
+| **Step 9**
+| Use the `dmpFinder()` function to identify differentially methylated probes between CTRL and DIS groups. Analyze the top 20,000 probes and filter by p-value.
+
+```{r}
+
+#first open the samplesheet and create a new object named pheno(for phenotypes CTRL and DIS)
+pheno <- read.csv("SampleSheet_Report_II.csv", header = TRUE, stringsAsFactors = TRUE)
+str(pheno)
+
+#limit our analysis to 20k probes 
+first20k_beta_preprocessQuantile <- beta_preprocessQuantile[1:20000, ]
+
+#now we build custom functions to be able to retrieve p values dmpFinfer  which is something we have to use as group 3
+
+library(minfi)  # if not already loaded
+pValues_dmpFinder_first20k <- dmpFinder(first20k_beta_preprocessQuantile, pheno = pheno$Group, type = "categorical")
+
+final_dmpFinder_first20k <- merge(first20k_beta_preprocessQuantile, pValues_dmpFinder_first20k, by = "row.names")
+rownames(final_dmpFinder_first20k) <- final_dmpFinder_first20k[,1]
+final_dmpFinder_first20k <- final_dmpFinder_first20k[order(final_dmpFinder_first20k$pval), ]
+
+final_dmpFinder_first20k_0.05 <- final_dmpFinder_first20k[final_dmpFinder_first20k$pval <= 0.05, ]
+nrow(final_dmpFinder_first20k_0.05)
+
+load("final_ttest_first20k.RData")
+# [1] 885
+table(rownames(final_ttest_first20k)==rownames(pValues_dmpFinder_first20k))
+# False 20000 Means: none of the 20,000 probes are in the same row order in both data frames.
+
+table(rownames(final_ttest_first20k)%in%rownames(pValues_dmpFinder_first20k))
+# TRUE 20000 means: All 20,000 probes are successfully present in both — just not in the same row order.
+
+# so this give us these results with filtered significant probes
+```
+
+| **Step 10**
+| Apply Bonferroni and Benjamini–Hochberg (FDR) corrections to p-values and assess how many probes remain significant after each correction method.
+
+```{r}
+# Apply the BH and Bonferroni corrections to the raw p-values
+corrected_pValues_BH <- p.adjust(final_dmpFinder_first20k$pval, method = "BH")
+corrected_pValues_Bonf <- p.adjust(final_dmpFinder_first20k$pval, method = "bonferroni")
+
+# Combine the original beta values and p-values with the corrected p-values
+final_dmpFinder_first20k_corrected <- data.frame(final_dmpFinder_first20k, 
+                                                  corrected_pValues_BH, 
+                                                  corrected_pValues_Bonf)
+
+# Check the structure and contents
+head(final_dmpFinder_first20k_corrected)
+colnames(final_dmpFinder_first20k_corrected)
+str(final_dmpFinder_first20k_corrected[,9:11])  # Inspect p-value columns
+
+# Visualize the distribution of nominal and corrected p-values
+boxplot(final_dmpFinder_first20k_corrected[, c(12, 14, 15)],
+        main = "Distribution of Nominal and Corrected P-values",
+        names = c("Beta", "BH", "Bonferroni"))
+
+# Count how many probes are significant under each condition (p ≤ 0.05)
+dim(final_dmpFinder_first20k_corrected[final_dmpFinder_first20k_corrected$pval <= 0.05, ])                # Nominal p-value
+dim(final_dmpFinder_first20k_corrected[final_dmpFinder_first20k_corrected$corrected_pValues_BH <= 0.05, ]) # BH correction
+dim(final_dmpFinder_first20k_corrected[final_dmpFinder_first20k_corrected$corrected_pValues_Bonf <= 0.05, ]) # Bonferroni
+
+
+```
+
+-   Around 40-50 probes appear to have nominal p-values \< 0.05. After the **Bonferroni** correction only 1 probe is significant, because this method is too stringent. **BH** is less strict than Bonferroni, so 4-5 probes are deemed significant.
+
+| **Step 11**
+| Create a volcano plot to visualize effect size vs significance. Create a Manhattan plot by merging probe p-values with genomic locations.
+
+```{r}
+# Confirm group structure
+pheno$Group
+
+# Preview data
+head(final_dmpFinder_first20k)
+
+# Extract beta values from the top 20k results
+beta_first20k <- final_dmpFinder_first20k[, 2:9]
+
+# Double-check column names
+colnames(final_dmpFinder_first20k)
+
+# Calculate group-specific means (CTRL and DIS)
+beta_first20k_groupCTRL <- beta_first20k[, pheno$Group == "CTRL"]
+mean_beta_first20k_groupCTRL <- apply(beta_first20k_groupCTRL, 1, mean)
+
+beta_first20k_groupDIS <- beta_first20k[, pheno$Group == "DIS"]
+mean_beta_first20k_groupDIS <- apply(beta_first20k_groupDIS, 1, mean)
+
+# Compute delta (mean difference in beta values between groups)
+delta_first20k <- mean_beta_first20k_groupDIS - mean_beta_first20k_groupCTRL
+head(delta_first20k)
+
+# Create data frame for volcano plot: delta vs. -log10(p-value)
+toVolcPlot <- data.frame(delta_first20k, -log10(final_dmpFinder_first20k$pval))
+head(toVolcPlot)
+
+# Basic volcano plot
+plot(toVolcPlot[,1], toVolcPlot[,2])
+
+# Improved volcano plot
+plot(toVolcPlot[,1], toVolcPlot[,2], pch = 16, cex = 0.5,
+     xlab = "Delta Beta", ylab = "-log10(p-value)",
+     main = "Volcano Plot: CTRL vs DIS")
+
+# Highlight significant points (|delta| > 0.1 and p < 0.01)
+toHighlight <- toVolcPlot[abs(toVolcPlot[,1]) > 0.1 & toVolcPlot[,2] > -log10(0.01), ]
+head(toHighlight)
+
+# Add highlighted points and threshold line
+points(toHighlight[,1], toHighlight[,2], pch = 16, cex = 0.7, col = "pink")
+abline(h = -log10(0.01), col = "magenta")
+
+# Load package for Manhattan plot
+install.packages("qqman")
+library(qqman)
+
+# Add CpG IDs as a new column for merging
+final_dmpFinder_first20k$CpG_ID <- rownames(final_dmpFinder_first20k)
+
+# Merge methylation results with probe annotation
+manhattan_input <- merge(final_dmpFinder_first20k, Illumina450Manifest_clean,
+                         by.x = "CpG_ID", by.y = "IlmnID")
+
+# Preview merged data
+head(manhattan_input)
+
+# Create input dataframe for qqman::manhattan()
+qqman_df <- data.frame(
+  SNP = manhattan_input$CpG_ID,
+  CHR = manhattan_input$CHR,
+  BP  = manhattan_input$MAPINFO,
+  P   = manhattan_input$pval
+)
+
+# Remove missing or malformed rows
+qqman_df <- qqman_df[complete.cases(qqman_df), ]
+qqman_df <- qqman_df[qqman_df$CHR %in% c(1:22, "X", "Y"), ]
+
+# Convert chromosomes X and Y to numeric values
+qqman_df$CHR <- as.character(qqman_df$CHR)
+qqman_df$CHR[qqman_df$CHR == "X"] <- "23"
+qqman_df$CHR[qqman_df$CHR == "Y"] <- "24"
+qqman_df$CHR <- as.numeric(qqman_df$CHR)
+
+# Plot Manhattan plot
+manhattan(qqman_df,
+          chr = "CHR",
+          bp = "BP",
+          p = "P",
+          snp = "SNP",
+          col = c("skyblue", "lightgreen"),
+          genomewideline = -log10(0.00001),
+          suggestiveline = -log10(0.0001),
+          main = "Manhattan Plot: dmpFinder Results")
+```
+
+| **Step 12**
+| Generate a heatmap of the top 100 differentially methylated probes using `heatmap.2()`, and compare different hierarchical clustering methods (complete, single, average).
+
+```{r}
+  # Your plotting code
+
+library(gplots)
+
+# Extract their beta values and convert to a matrix.
+input_heatmap <- as.matrix(final_dmpFinder_first20k[1:100, 2:9])
+
+# Assign sample group colors: CTRL = green, DIS = orange
+pheno$Group
+colorbar <- c("green","green","orange","orange","green","green","orange","orange")
+
+# Hierarchical clustering using different linkage methods:
+
+# Complete linkage (default)
+heatmap.2(input_heatmap,
+          col = terrain.colors(100),
+          Rowv = TRUE, Colv = TRUE,
+          dendrogram = "both",
+          key = TRUE,
+          ColSideColors = colorbar,
+          density.info = "none",
+          trace = "none",
+          scale = "none",
+          symm = FALSE,
+          main = "Complete linkage")
+
+```
+
+```{r}
+# Single linkage
+heatmap.2(input_heatmap,
+          col = terrain.colors(100),
+          Rowv = TRUE, Colv = TRUE,
+          hclustfun = function(x) hclust(x, method = 'single'),
+          dendrogram = "both",
+          key = TRUE,
+          ColSideColors = colorbar,
+          density.info = "none",
+          trace = "none",
+          scale = "none",
+          symm = FALSE,
+          main = "Single linkage")
+```
+
+```{r}
+# Average linkage
+heatmap.2(input_heatmap,
+          col = terrain.colors(100),
+          Rowv = TRUE, Colv = TRUE,
+          hclustfun = function(x) hclust(x, method = 'average'),
+          dendrogram = "both",
+          key = TRUE,
+          ColSideColors = colorbar,
+          density.info = "none",
+          trace = "none",
+          scale = "none",
+          symm = FALSE,
+          main = "Average linkage")
+```
+
+```{r}
+# Heatmap with a custom color palette
+col2 <- colorRampPalette(c("green", "black", "red"))(100)
+
+heatmap.2(input_heatmap,
+          col = col2,
+          Rowv = TRUE, Colv = TRUE,
+          dendrogram = "both",
+          key = TRUE,
+          ColSideColors = colorbar,
+          density.info = "none",
+          trace = "none",
+          scale = "none",
+          symm = FALSE,
+          main = "Optimal Method (CL)")
+
+# Show column names of the differential methylation results table
+colnames(final_dmpFinder_first20k)
+```
+
+When creating heat maps it is important to take into consideration that there are multiple variants of linkage methods to perform the hierarchical clustering and that these can produce different results, so it's important to try several combinations for robust analysis.:
+
+-   **Complete Linkage (Maximum Distance):** Uses the furthest pair; better for well-separated clusters.
+
+-   **Single Linkage (Minimum Distance):** Connects clusters using the closest pair of points (can cause chaining, as it can be seen in the second heat map).
+
+-   **Average Linkage (UPGMA):** Calculates average distance between all pairs across clusters; robust and widely used.
+
+In this case, by looking at the heat maps, it can be concluded that the one that gives the clearest sample separation and is more visually intuitive is the **Complete Linkage** heat map, where the color grid and the dendrograms show biologically meaningful patterns clearly. With this conclusion it can be assumed that samples in a cluster are similar to each other and different from other clusters.
