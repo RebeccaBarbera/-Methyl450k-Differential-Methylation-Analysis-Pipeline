@@ -13,7 +13,8 @@
 | **`reshape2` or `tidyverse`**                                                               | For data wrangling and formatting.                                   |
 | **`knitr` / `rmarkdown`**                                                                   | For generating the HTML report output.                               |
 | **`qqman`**                                                                                 | Fpr creating MAnhatta  plots (commonlu used in genomics              |
-#### Addtional packages 
+
+#### Data Handling / Utilities
 | Package                                         | Purpose                                         |
 | ----------------------------------------------- | ----------------------------------------------- |
 | **`GenomicRanges`**, **`SummarizedExperiment`** | For genomic data structures used by `minfi`.    |
@@ -21,7 +22,6 @@
 | **`dmpFinder`** (function from `minfi`)         | Identifies differentially methylated positions. |
 
 #### Additional packages
-
 | **Package**                                                       | **Purpose / Description**                                                                                                                                              
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **BiocManager**                                                 | Installs and manages Bioconductor packages required for methylation analysis.                                                                                          |
