@@ -19,8 +19,11 @@
 | **`GenomicRanges`**, **`SummarizedExperiment`** | For genomic data structures used by `minfi`.    |
 | **`Illumina450Manifest_clean.RData`**           | External annotation file loaded at the start.   |
 | **`dmpFinder`** (function from `minfi`)         | Identifies differentially methylated positions. |
-| **Package**                                                     | **Purpose / Description**                                                                                                                                              |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+
+#### Additional packages
+
+| **Package**                                                       | **Purpose / Description**                                                                                                                                              
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **BiocManager**                                                 | Installs and manages Bioconductor packages required for methylation analysis.                                                                                          |
 | **base**, **utils**                                             | Core R packages used for file input/output, data manipulation, and basic R functions.                                                                                  |
 | **BiocGenerics**, **S4Vectors**, **IRanges**, **GenomicRanges** | Implicitly used by `minfi` and related Illumina 450K packages for genomic data structures and efficient data representation (not usually loaded directly by the user). |
