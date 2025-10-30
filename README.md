@@ -14,14 +14,14 @@
 | **`knitr` / `rmarkdown`**                                                                   | For generating the HTML report output.                               |
 | **`qqman`**                                                                                 | Fpr creating MAnhatta  plots (commonlu used in genomics              |
 
-#### Data Handling / Utilities
+#### Data Handling / Utilities:
 | Package                                         | Purpose                                         |
 | ----------------------------------------------- | ----------------------------------------------- |
 | **`GenomicRanges`**, **`SummarizedExperiment`** | For genomic data structures used by `minfi`.    |
 | **`Illumina450Manifest_clean.RData`**           | External annotation file loaded at the start.   |
 | **`dmpFinder`** (function from `minfi`)         | Identifies differentially methylated positions. |
 
-#### Additional packages
+#### Additional packages:
 | **Package**                                                       | **Purpose / Description**                                                                                                                                              
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **BiocManager**                                                 | Installs and manages Bioconductor packages required for methylation analysis.                                                                                          |
