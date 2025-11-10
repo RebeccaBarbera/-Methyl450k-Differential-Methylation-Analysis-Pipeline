@@ -28,4 +28,4 @@
 | **base**, **utils**                                             | Core R packages used for file input/output, data manipulation, and basic R functions.                                                                                  |
 | **BiocGenerics**, **S4Vectors**, **IRanges**, **GenomicRanges** | Implicitly used by `minfi` and related Illumina 450K packages for genomic data structures and efficient data representation (not usually loaded directly by the user). |
 
-For more infomration about the workflow please refer to our [FinalReport_3Team.Rmd]()
+# For more infomration about the workflow please refer to our [FinalReport_3Team.Rmd](FinalReport_3Team.Rmd)
